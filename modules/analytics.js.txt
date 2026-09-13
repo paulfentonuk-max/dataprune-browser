@@ -1,0 +1,49 @@
+// Analytics Module v0.2.0
+// Anonymous usage tracking - GDPR compliant
+
+export class Analytics {
+  constructor() {
+    this.endpoint = 'https://api.fenton-creative.co/v1/analytics';
+  }
+  
+  async trackEvent(eventType, data = {}) {
+    try {
+      const payload = {
+        event: eventType,
+        timestamp: Date.now(),
+        version: '0.2.0',
+        sessionId: await this.getSessionId(),
+        ...data
+      };
+      
+      // Send anonymously (no PII)
+      await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+      });
+    } catch (e) {
+      // Silent fail - don't break functionality
+      console.log('Analytics error:', e);
+    }
+  }
+  
+  async trackRequest(data) {
+    return this.trackEvent('request', {
+      tokensBefore: data.tokensBefore,
+      tokensAfter: data.tokensAfter,
+      tier: data.tier,
+      latency: data.latency
+    });
+  }
+  
+  async getSessionId() {
+    let { sessionId } = await chrome.storage.local.get('sessionId');
+    if (!sessionId) {
+      sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+      await chrome.storage.local.set({ sessionId });
+    }
+    return sessionId;
+  }
+}

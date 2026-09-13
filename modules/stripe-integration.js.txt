@@ -1,0 +1,48 @@
+// Stripe Integration Module v0.2.0
+
+export class StripeIntegration {
+  constructor() {
+    this.apiEndpoint = 'https://api.fenton-creative.co/v1/stripe';
+  }
+  
+  async initiateCheckout(tier) {
+    try {
+      const response = await fetch(`${this.apiEndpoint}/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: tier,
+          successUrl: chrome.runtime.getURL('pages/success.html'),
+          cancelUrl: chrome.runtime.getURL('pages/cancel.html')
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.url) {
+        // Open checkout in new tab
+        chrome.tabs.create({ url: data.url });
+        return { success: true };
+      }
+      
+      return { success: false, error: data.error };
+    } catch (error) {
+      console.error('Stripe checkout error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+  
+  async verifyLicense(licenseKey) {
+    try {
+      const response = await fetch(`${this.apiEndpoint}/verify-license`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseKey })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      return { valid: false, error: 'Verification failed' };
+    }
+  }
+}
